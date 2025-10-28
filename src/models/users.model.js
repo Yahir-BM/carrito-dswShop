@@ -1,6 +1,6 @@
 const db = require("./firebase");
 
-const usersCollection = db.collection('Users');
+const usersCollection = db.collection('Usuario');
 
 async function getAll() {
     try{
