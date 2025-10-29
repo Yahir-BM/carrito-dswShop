@@ -25,9 +25,27 @@ async function getById(id) {
 
 async function createUser(data) { 
     try {
-        const docRef = await usersCollection.add(data);
-        return {id: docRef, ...data};
-    } catch {
+
+        const { id_facturapi, id_user, username, password, rol, email, address } = data;
+
+        if(!username || !password || !rol || !email || !address) {
+            throw new error("Faltana campos por rellenar (Obligatorios)"); 
+        }
+
+        const newUser = {
+            id_facturapi: id_facturapi || null,
+            id_user: id_user || null,
+            username,
+            password,
+            rol,
+            email,
+            address
+        }
+
+        const docRef = await usersCollection.add(newUser);
+        return { id: docRef.id, ...newUser};
+
+    } catch (error) {
         console.error("Error al crear usuario:", error);
         throw error;
     }
@@ -39,7 +57,7 @@ async function updateUser(id, data) {
         const doc = await docRef.get();
 
         if (!doc.exists) return null;
-        await docRef.updateUser(data);
+        await docRef.update(data);
 
         return { id, ...data};
     } catch (error) {
