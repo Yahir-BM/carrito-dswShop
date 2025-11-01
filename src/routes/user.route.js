@@ -7,7 +7,7 @@ const {
     createUser,
     updateUser,
     deleteUser
-} = require('../controllers/users.controller');
+} = require('../controllers/user.controllers')
 
 // Rutas CRUD de usuarios
 router.get('/', getAll);

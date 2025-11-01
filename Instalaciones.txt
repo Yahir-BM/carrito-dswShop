@@ -1,0 +1,3 @@
+Requiere de instalar en terminal:
+- node express
+- cors 
