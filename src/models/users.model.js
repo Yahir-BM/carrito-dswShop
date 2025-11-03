@@ -1,4 +1,9 @@
 const db = require("./firebase");
+const {randomUUIDD} = require("node:crypto");
+const FacturapiModule = require("facturapi");
+const Facturapi = FacturapiModule.default || FacturapiModule;
+const FACTURAPI_KEY = 'sk_test_KRbZrQv3J0p4LwOzOEnq6jdsPvP5mExqVo8O2Anl6M'
+const facturapi = new Facturapi(FACTURAPI_KEY);
 
 const usersCollection = db.collection('Usuario');
 
@@ -26,21 +31,27 @@ async function getById(id) {
 async function createUser(data) { 
     try {
 
-        const { id_facturapi, id_user, username, password, rol, email, address } = data;
+        const {username, password, rol, email, address, tax_id, legal_name } = data;
 
-        if(!username || !password || !rol || !email || !address) {
-            throw new error("Faltana campos por rellenar (Obligatorios)"); 
+        if(!username || !password || !rol || !email || !address || !tax_id || !legal_name) {
+            throw new Error("Faltan campos por rellenar (Obligatorios)"); 
         }
 
+        //Para crear cliente en facturapi
+        const facturapiCustomerId = await createCustomerFacturapi(data);
+          
         const newUser = {
-            id_facturapi: id_facturapi || null,
-            id_user: id_user || null,
+            id_facturapi: facturapiCustomerId,
+            id_user: randomUUIDD(),
             username,
             password,
             rol,
             email,
-            address
-        }
+            address,
+            tax_id,
+            legal_name,
+            created_at: new Date().toISOString()
+        };
 
         const docRef = await usersCollection.add(newUser);
         return { id: docRef.id, ...newUser};
@@ -57,9 +68,16 @@ async function updateUser(id, data) {
         const doc = await docRef.get();
 
         if (!doc.exists) return null;
-        await docRef.update(data);
 
+       const userData = doc.data();
+
+       if (userData.id_facturapi) {
+        await updateCustomerFacturapi(userData.id_facturapi,data);
+       }
+
+        await docRef.update(data);
         return { id, ...data};
+
     } catch (error) {
         console.error("Error al atualizar usuario", error);
         throw error;
@@ -72,11 +90,63 @@ async function deleteUser(id) {
         const doc = await docRef.get();
 
         if(!doc.exists) return null;
+
+        const userData = doc.data();
+
+        if (userData.id_facturapi) {
+            await deleteCustomerFacturapi(userData.id_facturapi);
+        }
+
         await docRef.delete();
         return true;
+
     } catch (error) {
         console.error("Error al eliminar usuario:", error);
         throw error;
+    }
+}
+
+//Crear cliente en facturapi
+async function createCustomerFacturapi(userData) {
+    try {
+        const customer = await facturapi.customers.create({
+            legal_name: userData.legal_name,
+            email: userData.email,
+            tax_id: userData.tax_id,
+            address: {
+                street: userData.address,
+                country: "MX"
+            }
+        });
+        return customer.id;
+    } catch (error) {
+        console.error("Error al crear el cliente en facturapi", error.message);
+        throw new Error("No se pudo crear el cliente en Facturapi");
+    }
+}
+
+async function updateCustomerFacturapi(id_facturapi, newData) {
+    try {
+        await facturapi.customers.update(id_facturapi, {
+            legal_name: newData.legal_name,
+            email: newData.email,
+            tax_id: newData.tax_id,
+            address: {
+                street: newData.address,
+                country: "MX"
+            }
+        });
+    } catch (error) {
+        console.error("Error al actualizar cliente en facturapi", error.message);
+    }
+}
+
+//Eliminar cliente de facturapi
+async function deleteCustomerFacturapi(id_facturapi) {
+    try {
+        await facturapi.customers.del(id_facturapi);
+    } catch (error) {
+        console.error("Error al eliminar cliente en Facturapi:", error.message);
     }
 }
 
