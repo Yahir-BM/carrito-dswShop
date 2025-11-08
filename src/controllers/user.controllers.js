@@ -22,7 +22,7 @@ async function getById(req, res) {
 
 async function createUser(req, res) {
     try {
-        const { id_facturapi, id_user, username, password, rol, email, address } = req.body;
+        const { username, password, rol, email, address, tax_id, legal_name } = req.body;
 
         if (!username || !password || !rol || !email || !address) {
             return res.status(400).json({message: "Faltan campos obligatorios"});
@@ -52,13 +52,13 @@ async function createUser(req, res) {
         }
 
         const newUser = { 
-            id_facturapi: id_facturapi || null,
-            id_user: id_user || null,
             username, 
             password, 
             rol: rol.toLowerCase(), 
             email, 
-            address
+            address,
+            tax_id,
+            legal_name
         };
 
         const created = await User.createUser(newUser);
@@ -66,7 +66,7 @@ async function createUser(req, res) {
 
     } catch (error) {
         console.error("Error al crear usuario", error);
-        res.status(500).json({message: "Error al crear usuario"});
+        res.status(500).json({message: "Error al crear usuario", error: error.message});
     }
 }
 

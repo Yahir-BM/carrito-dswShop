@@ -1,5 +1,5 @@
 const db = require("./firebase");
-const {randomUUIDD} = require("node:crypto");
+const { randomUUID } = require("node:crypto");
 const FacturapiModule = require("facturapi");
 const Facturapi = FacturapiModule.default || FacturapiModule;
 const FACTURAPI_KEY = 'sk_test_KRbZrQv3J0p4LwOzOEnq6jdsPvP5mExqVo8O2Anl6M'
@@ -38,11 +38,12 @@ async function createUser(data) {
         }
 
         //Para crear cliente en facturapi
-        const facturapiCustomerId = await createCustomerFacturapi(data);
-          
+        //const facturapiCustomerId = await createCustomerFacturapi(data);
+        const facturapiCustomerId = "test_id_facturapi"; //Nomas para testear
+
         const newUser = {
             id_facturapi: facturapiCustomerId,
-            id_user: randomUUIDD(),
+            id_user: randomUUID(),
             username,
             password,
             rol,
@@ -109,19 +110,33 @@ async function deleteUser(id) {
 //Crear cliente en facturapi
 async function createCustomerFacturapi(userData) {
     try {
+        console.log('Intentando crear cliente en Facturapi con:', {
+            legal_name: userData.legal_name,
+            tax_id: userData.tax_id,
+            email: userData.email
+        });
+
         const customer = await facturapi.customers.create({
             legal_name: userData.legal_name,
             email: userData.email,
             tax_id: userData.tax_id,
             address: {
-                street: userData.address,
+                street: userData.address.substring(0, 100), // Máximo 100 caracteres
+                exterior: "123", // Necesario
+                neighborhood: "Centro", // Necesario  
+                city: "Ciudad de México", // Necesario
+                zip: "06000", // Necesario
+                state: "CDMX", // Necesario
                 country: "MX"
             }
         });
+        
+        console.log('Cliente creado en Facturapi:', customer.id);
         return customer.id;
+        
     } catch (error) {
-        console.error("Error al crear el cliente en facturapi", error.message);
-        throw new Error("No se pudo crear el cliente en Facturapi");
+        console.error(" Error DETAILED de Facturapi:", error.response?.data || error.message);
+        throw new Error(`No se pudo crear el cliente en Facturapi: ${error.message}`);
     }
 }
 
